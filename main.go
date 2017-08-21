@@ -368,70 +368,36 @@ func wavy(s image.Point, n int) (image.Image, bool) {
 func radialWedgeAngle(i, n int) float64 {
 	return math.Pi*2*float64(i)/float64(n) + math.Pi/4
 }
-func oneRadialWedge(ctx *gg.Context, centerX, centerY, r float64, i, n int) {
-	ctx.DrawArc(centerX, centerY, r, radialWedgeAngle(i, n), radialWedgeAngle(i+1, n))
-	ctx.LineTo(centerX, centerY)
+func radialWedgeImpl(s, center image.Point, n int) (image.Image, bool) {
+	n *= 2
+	sx := float64(s.X)
+	sy := float64(s.Y)
+	centerX := float64(center.X)
+	centerY := float64(center.Y)
+
+	ctx := gg.NewContext(s.X, s.Y)
+
+	ctx.SetColor(white)
+	ctx.DrawRectangle(0, 0, sx, sy)
 	ctx.Fill()
+
+	ctx.SetColor(black)
+	for i := 0; i < n; i += 2 {
+		ctx.DrawArc(centerX, centerY, 2*sx, radialWedgeAngle(i, n), radialWedgeAngle(i+1, n))
+		ctx.LineTo(centerX, centerY)
+		ctx.Fill()
+	}
+
+	return ctx.Image(), false
 }
 func radialWedge(s image.Point, n int) (image.Image, bool) {
-	n *= 2
-	sx := float64(s.X)
-	sy := float64(s.Y)
-	centerX := sx / 2
-	centerY := sy / 2
-
-	ctx := gg.NewContext(s.X, s.Y)
-
-	ctx.SetColor(white)
-	ctx.DrawRectangle(0, 0, sx, sy)
-	ctx.Fill()
-
-	ctx.SetColor(black)
-	for i := 0; i < n; i += 2 {
-		oneRadialWedge(ctx, centerX, centerY, sx, i, n)
-	}
-
-	return ctx.Image(), false
+	return radialWedgeImpl(s, image.Pt(s.X/2, s.Y/2), n)
 }
 func radialWedgeOffsetX(s image.Point, n int) (image.Image, bool) {
-	n *= 2
-	sx := float64(s.X)
-	sy := float64(s.Y)
-	centerX := -(sy / 2)
-	centerY := sy / 2
-
-	ctx := gg.NewContext(s.X, s.Y)
-
-	ctx.SetColor(white)
-	ctx.DrawRectangle(0, 0, sx, sy)
-	ctx.Fill()
-
-	ctx.SetColor(black)
-	for i := 0; i < n; i += 2 {
-		oneRadialWedge(ctx, centerX, centerY, sx*2, i, n)
-	}
-
-	return ctx.Image(), false
+	return radialWedgeImpl(s, image.Pt(-s.Y/2, s.Y/2), n)
 }
 func radialWedgeOffsetY(s image.Point, n int) (image.Image, bool) {
-	n *= 2
-	sx := float64(s.X)
-	sy := float64(s.Y)
-	centerX := sx / 2
-	centerY := -sy / 2
-
-	ctx := gg.NewContext(s.X, s.Y)
-
-	ctx.SetColor(white)
-	ctx.DrawRectangle(0, 0, sx, sy)
-	ctx.Fill()
-
-	ctx.SetColor(black)
-	for i := 0; i < n; i += 2 {
-		oneRadialWedge(ctx, centerX, centerY, sx*2, i, n)
-	}
-
-	return ctx.Image(), false
+	return radialWedgeImpl(s, image.Pt(s.X/2, -s.Y/2), n)
 }
 
 func radialWave(s image.Point, n int) (image.Image, bool) {
