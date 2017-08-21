@@ -515,20 +515,44 @@ func main() {
 
 	initsRGBLUT()
 
+	queue := make(chan *imageJob)
+	for j := 0; j < runtime.NumCPU(); j++ {
+		wg.Add(1)
+		go worker(queue, &wg)
+	}
+
 	for i, sizeName := range sizeNames {
 		for _, numLines := range lineCountList {
 			for _, imageFunc := range imageFuncs {
-				wg.Add(1)
-				go oneTask(imageFunc, sizeList[i], numLines, sizeName, &wg)
+				queue <- &imageJob{
+					imageFunc: imageFunc,
+					imgSize:   sizeList[i],
+					numLines:  numLines,
+					sizeName:  sizeName,
+				}
 			}
 		}
 	}
+	close(queue)
 
 	wg.Wait()
 }
 
-func oneTask(imageFunc func(image.Point, int) (image.Image, bool), imgSize image.Point, numLines int, sizeName string, wg *sync.WaitGroup) {
+type imageJob struct {
+	imageFunc func(image.Point, int) (image.Image, bool)
+	imgSize   image.Point
+	numLines  int
+	sizeName  string
+}
+
+func worker(in chan *imageJob, wg *sync.WaitGroup) {
 	defer wg.Done()
+	for job := range in {
+		oneTask(job.imageFunc, job.imgSize, job.numLines, job.sizeName)
+	}
+}
+
+func oneTask(imageFunc func(image.Point, int) (image.Image, bool), imgSize image.Point, numLines int, sizeName string) {
 
 	funcAddr := reflect.ValueOf(imageFunc).Pointer()
 	funcName := runtime.FuncForPC(funcAddr).Name()
