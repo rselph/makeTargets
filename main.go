@@ -15,12 +15,13 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/fogleman/gg"
 	"golang.org/x/image/tiff"
 )
 
 var lineCountList = []int{2, 5, 10, 30, 60, 120, 480}
 var sizeList = []image.Point{
-	image.Point{X: 1920, Y: 1080},
+	image.Point{X: 3840, Y: 2160},
 	image.Point{X: 3840, Y: 2400},
 }
 var sizeNames = []string{
@@ -47,6 +48,7 @@ var imageFuncs = []func(image.Point, int) (image.Image, bool){
 	polkaDark,
 	polkaMid,
 	field,
+	radialWedge,
 }
 
 var sRGBLUT []uint16
@@ -359,6 +361,32 @@ func wavy(s image.Point, n int) (image.Image, bool) {
 	}
 
 	return pic, true
+}
+
+func radialWedgeAngle(i, n int) float64 {
+	return math.Pi*2*float64(i)/float64(n) + math.Pi/4
+}
+func radialWedge(s image.Point, n int) (image.Image, bool) {
+	n *= 2
+	sx := float64(s.X)
+	sy := float64(s.Y)
+	centerX := sx / 2
+	centerY := sy / 2
+
+	ctx := gg.NewContext(s.X, s.Y)
+
+	ctx.SetColor(white)
+	ctx.DrawRectangle(0, 0, sx, sy)
+	ctx.Fill()
+
+	ctx.SetColor(black)
+	for i := 0; i < n; i += 2 {
+		ctx.DrawArc(centerX, centerY, sx, radialWedgeAngle(i, n), radialWedgeAngle(i+1, n))
+		ctx.LineTo(centerX, centerY)
+		ctx.Fill()
+	}
+
+	return ctx.Image(), false
 }
 
 func radialWave(s image.Point, n int) (image.Image, bool) {
