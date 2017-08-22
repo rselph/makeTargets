@@ -368,22 +368,19 @@ func wavy(s image.Point, n int) (image.Image, bool) {
 func radialWedgeAngle(i, n int) float64 {
 	return math.Pi*2*float64(i)/float64(n) + math.Pi/4
 }
-func radialWedgeImpl(s, center image.Point, n int) (image.Image, bool) {
+func radialWedgeImpl(s image.Point, offsetX, offsetY float64, n int) (image.Image, bool) {
 	n *= 2
-	sx := float64(s.X)
-	sy := float64(s.Y)
 
-	ctx := gg.NewContext(s.X, s.Y)
+	ctx, b, l := newCtx(s, white)
 
-	ctx.SetColor(white)
-	ctx.DrawRectangle(0, 0, sx, sy)
-	ctx.Fill()
-
-	ctx.Translate(float64(center.X), float64(center.Y))
+	centerX := b.Max.X * offsetX
+	centerY := b.Max.Y * offsetY
+	ctx.Translate(centerX, centerY)
+	r := math.Sqrt(centerX*centerX+centerY*centerY) + l
 
 	ctx.SetColor(black)
 	for i := 0; i < n; i += 2 {
-		ctx.DrawArc(0, 0, 2*sx, radialWedgeAngle(i, n), radialWedgeAngle(i+1, n))
+		ctx.DrawArc(0, 0, r, radialWedgeAngle(i, n), radialWedgeAngle(i+1, n))
 		ctx.LineTo(0, 0)
 		ctx.Fill()
 	}
@@ -391,13 +388,16 @@ func radialWedgeImpl(s, center image.Point, n int) (image.Image, bool) {
 	return ctx.Image(), false
 }
 func radialWedge(s image.Point, n int) (image.Image, bool) {
-	return radialWedgeImpl(s, image.Pt(s.X/2, s.Y/2), n)
+	return radialWedgeImpl(s, 0, 0, n)
+	//	return radialWedgeImpl(s, image.Pt(s.X/2, s.Y/2), n)
 }
 func radialWedgeOffsetX(s image.Point, n int) (image.Image, bool) {
-	return radialWedgeImpl(s, image.Pt(-s.Y/2, s.Y/2), n)
+	return radialWedgeImpl(s, -1.5, 0, n)
+	//	return radialWedgeImpl(s, image.Pt(-s.Y/2, s.Y/2), n)
 }
 func radialWedgeOffsetY(s image.Point, n int) (image.Image, bool) {
-	return radialWedgeImpl(s, image.Pt(s.X/2, -s.Y/2), n)
+	return radialWedgeImpl(s, 0, 1.5, n)
+	//	return radialWedgeImpl(s, image.Pt(s.X/2, -s.Y/2), n)
 }
 
 func radialWave(s image.Point, n int) (image.Image, bool) {
@@ -528,6 +528,9 @@ func oneTask(imageFunc func(image.Point, int) (image.Image, bool), imgSize image
 
 	//	img, shouldDither := imageFunc(imgSize, numLines)
 	img, _ := imageFunc(imgSize, numLines)
+	if img == nil {
+		return
+	}
 
 	fileName := makeName(sizeName, funcName, imgSize, numLines)
 	//	if shouldDither {
@@ -564,6 +567,46 @@ func newPallete(s image.Point, background color.Color) (pic *image.RGBA64, b ima
 	if background != nil {
 		draw.Draw(pic, b, &image.Uniform{background}, image.ZP, draw.Src)
 	}
+
+	return
+}
+
+type floatPoint struct {
+	X float64
+	Y float64
+}
+type floatRect struct {
+	Min floatPoint
+	Max floatPoint
+}
+
+func rect(minx, miny, maxx, maxy float64) floatRect {
+	return floatRect{
+		Min: floatPoint{X: minx, Y: miny},
+		Max: floatPoint{X: maxx, Y: maxy},
+	}
+}
+
+func newCtx(s image.Point, background color.Color) (ctx *gg.Context, b floatRect, l float64) {
+	sx := float64(s.X)
+	sy := float64(s.Y)
+	b = rect(-sx/2, -sy/2, sx/2, sy/2)
+
+	if sx > sy {
+		l = sx
+	} else {
+		l = sy
+	}
+
+	ctx = gg.NewContext(s.X, s.Y)
+
+	if background != nil {
+		ctx.SetColor(background)
+		ctx.DrawRectangle(0, 0, sx, sy)
+		ctx.Fill()
+	}
+
+	ctx.Translate(sx/2, sy/2)
 
 	return
 }
