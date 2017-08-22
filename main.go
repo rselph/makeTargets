@@ -372,8 +372,6 @@ func radialWedgeImpl(s, center image.Point, n int) (image.Image, bool) {
 	n *= 2
 	sx := float64(s.X)
 	sy := float64(s.Y)
-	centerX := float64(center.X)
-	centerY := float64(center.Y)
 
 	ctx := gg.NewContext(s.X, s.Y)
 
@@ -381,10 +379,12 @@ func radialWedgeImpl(s, center image.Point, n int) (image.Image, bool) {
 	ctx.DrawRectangle(0, 0, sx, sy)
 	ctx.Fill()
 
+	ctx.Translate(float64(center.X), float64(center.Y))
+
 	ctx.SetColor(black)
 	for i := 0; i < n; i += 2 {
-		ctx.DrawArc(centerX, centerY, 2*sx, radialWedgeAngle(i, n), radialWedgeAngle(i+1, n))
-		ctx.LineTo(centerX, centerY)
+		ctx.DrawArc(0, 0, 2*sx, radialWedgeAngle(i, n), radialWedgeAngle(i+1, n))
+		ctx.LineTo(0, 0)
 		ctx.Fill()
 	}
 
