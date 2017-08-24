@@ -52,6 +52,8 @@ var imageFuncs = []func(image.Point, int) (image.Image, bool){
 	radialWedgeOffsetX,
 	radialWedgeOffsetY,
 	newJail,
+	diamond,
+	crosshatch,
 }
 
 var sRGBLUT []uint16
@@ -369,7 +371,7 @@ func wavy(s image.Point, n int) (image.Image, bool) {
 func addJail(ctx *gg.Context, div float64) {
 	width := float64(ctx.Width())
 	height := float64(ctx.Height())
-	for i := 0.5; true; i++ {
+	for i := 0.0; true; i++ {
 		d := i * width / (div * 2)
 
 		if d > width && d > height {
@@ -388,8 +390,26 @@ func newJail(s image.Point, n int) (image.Image, bool) {
 	ctx, _, _ := newCtx(s, white)
 	ctx.SetLineWidth(5.0)
 	ctx.SetColor(black)
-	//	ctx.Rotate(gg.Radians(45))
 	addJail(ctx, float64(n))
+	return ctx.Image(), false
+}
+
+func diamond(s image.Point, n int) (image.Image, bool) {
+	ctx, _, _ := newCtx(s, white)
+	ctx.SetLineWidth(5.0)
+	ctx.SetColor(black)
+	ctx.Rotate(gg.Radians(45))
+	addJail(ctx, float64(n))
+	return ctx.Image(), false
+}
+
+func crosshatch(s image.Point, n int) (image.Image, bool) {
+	ctx, _, _ := newCtx(s, white)
+	ctx.SetLineWidth(5.0)
+	ctx.SetColor(black)
+	addJail(ctx, float64(n))
+	ctx.Rotate(gg.Radians(45))
+	addJail(ctx, float64(n)/math.Sqrt2)
 	return ctx.Image(), false
 }
 
