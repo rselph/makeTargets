@@ -51,6 +51,7 @@ var imageFuncs = []func(image.Point, int) (image.Image, bool){
 	radialWedge,
 	radialWedgeOffsetX,
 	radialWedgeOffsetY,
+	newJail,
 }
 
 var sRGBLUT []uint16
@@ -365,6 +366,33 @@ func wavy(s image.Point, n int) (image.Image, bool) {
 	return pic, true
 }
 
+func addJail(ctx *gg.Context, div float64) {
+	width := float64(ctx.Width())
+	height := float64(ctx.Height())
+	for i := 0.5; true; i++ {
+		d := i * width / (div * 2)
+
+		if d > width && d > height {
+			break
+		}
+
+		ctx.DrawLine(-width, d, width, d)
+		ctx.DrawLine(-width, -d, width, -d)
+		ctx.DrawLine(d, -height, d, height)
+		ctx.DrawLine(-d, -height, -d, height)
+		ctx.Stroke()
+	}
+}
+
+func newJail(s image.Point, n int) (image.Image, bool) {
+	ctx, _, _ := newCtx(s, white)
+	ctx.SetLineWidth(5.0)
+	ctx.SetColor(black)
+	//	ctx.Rotate(gg.Radians(45))
+	addJail(ctx, float64(n))
+	return ctx.Image(), false
+}
+
 func radialWedgeAngle(i, n int) float64 {
 	return math.Pi*2*float64(i)/float64(n) + math.Pi/4
 }
@@ -382,6 +410,7 @@ func radialWedgeImpl(s image.Point, offsetX, offsetY float64, n int) (image.Imag
 	for i := 0; i < n; i += 2 {
 		ctx.DrawArc(0, 0, r, radialWedgeAngle(i, n), radialWedgeAngle(i+1, n))
 		ctx.LineTo(0, 0)
+		ctx.ClosePath()
 		ctx.Fill()
 	}
 
@@ -389,15 +418,12 @@ func radialWedgeImpl(s image.Point, offsetX, offsetY float64, n int) (image.Imag
 }
 func radialWedge(s image.Point, n int) (image.Image, bool) {
 	return radialWedgeImpl(s, 0, 0, n)
-	//	return radialWedgeImpl(s, image.Pt(s.X/2, s.Y/2), n)
 }
 func radialWedgeOffsetX(s image.Point, n int) (image.Image, bool) {
 	return radialWedgeImpl(s, -1.5, 0, n)
-	//	return radialWedgeImpl(s, image.Pt(-s.Y/2, s.Y/2), n)
 }
 func radialWedgeOffsetY(s image.Point, n int) (image.Image, bool) {
 	return radialWedgeImpl(s, 0, 1.5, n)
-	//	return radialWedgeImpl(s, image.Pt(s.X/2, -s.Y/2), n)
 }
 
 func radialWave(s image.Point, n int) (image.Image, bool) {
