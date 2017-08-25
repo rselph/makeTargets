@@ -441,15 +441,15 @@ func polkaMid(s image.Point, n int) (image.Image, bool) {
 }
 
 func doDot(s image.Point, n int, foreground, background color.Color) (image.Image, bool) {
-	pic, b, long := newPallete(s, background)
+	ctx, b, l := newCtx(s, background)
+	ctx.SetColor(foreground)
 
+	long := int(l)
 	dotRadius := (long / n) / 5
-	dot := &circle{image.Pt(0, 0), dotRadius}
-	dotImage := &image.Uniform{foreground}
 
-	longMin := b.Min.X
+	longMin := int(b.Min.X)
 	if s.Y > s.X {
-		longMin = b.Min.Y
+		longMin = int(b.Min.Y)
 	}
 	for xi := 1; xi < n; xi += 1 {
 		offsetx := longMin + long*xi/n
@@ -457,13 +457,11 @@ func doDot(s image.Point, n int, foreground, background color.Color) (image.Imag
 		for yi := 1; yi < n; yi += 1 {
 			offsety := longMin + long*yi/n
 
-			dotArea := image.Rect(offsetx-dotRadius, offsety-dotRadius, offsetx+dotRadius, offsety+dotRadius)
-			draw.DrawMask(pic, dotArea, dotImage, image.ZP, dot, dot.Bounds().Min, draw.Over)
-			//			if offsety >= b.Min.Y && offsety < b.Max.Y {
-			//			}
+			ctx.DrawCircle(float64(offsetx), float64(offsety), float64(dotRadius))
+			ctx.Fill()
 		}
 	}
-	return pic, false
+	return ctx.Image(), false
 }
 
 func main() {
@@ -683,29 +681,4 @@ func initsRGBLUT() {
 	for i := range linearLUT {
 		linearLUT[i] = uint16(i)
 	}
-}
-
-type circle struct {
-	p image.Point
-	r int
-}
-
-func (c *circle) ColorModel() color.Model {
-	return color.Alpha16Model
-}
-
-func (c *circle) Bounds() image.Rectangle {
-	return image.Rect(c.p.X-c.r, c.p.Y-c.r, c.p.X+c.r, c.p.Y+c.r)
-}
-
-func (c *circle) At(x, y int) color.Color {
-	if x == 0 && y == 0 {
-		return color.Alpha16{65535}
-	}
-
-	xx, yy, rr := float64(x-c.p.X)+0.5, float64(y-c.p.Y)+0.5, float64(c.r)
-	if xx*xx+yy*yy < rr*rr {
-		return color.Alpha16{65535}
-	}
-	return color.Alpha16{0}
 }
