@@ -368,10 +368,19 @@ func wavy(s image.Point, n int) (image.Image, bool) {
 	return pic, true
 }
 
-func addJail(ctx *gg.Context, div float64) {
+func addJail(ctx *gg.Context, div float64, maxLineWidth float64) {
 	width := float64(ctx.Width())
 	height := float64(ctx.Height())
-	for i := 0.0; true; i++ {
+
+	lineWidth := 0.025 * width / div
+	if lineWidth > maxLineWidth {
+		lineWidth = maxLineWidth
+	}
+	ctx.SetLineWidth(lineWidth)
+
+	ctx.DrawLine(-width, 0, width, 0)
+	ctx.DrawLine(0, -height, 0, height)
+	for i := 1.0; true; i++ {
 		d := i * width / (div * 2)
 
 		if d > width && d > height {
@@ -388,28 +397,25 @@ func addJail(ctx *gg.Context, div float64) {
 
 func newJail(s image.Point, n int) (image.Image, bool) {
 	ctx, _, _ := newCtx(s, white)
-	ctx.SetLineWidth(5.0)
 	ctx.SetColor(black)
-	addJail(ctx, float64(n))
+	addJail(ctx, float64(n), 5)
 	return ctx.Image(), false
 }
 
 func diamond(s image.Point, n int) (image.Image, bool) {
 	ctx, _, _ := newCtx(s, white)
-	ctx.SetLineWidth(5.0)
 	ctx.SetColor(black)
 	ctx.Rotate(gg.Radians(45))
-	addJail(ctx, float64(n))
+	addJail(ctx, float64(n), 5)
 	return ctx.Image(), false
 }
 
 func crosshatch(s image.Point, n int) (image.Image, bool) {
 	ctx, _, _ := newCtx(s, white)
-	ctx.SetLineWidth(5.0)
 	ctx.SetColor(black)
-	addJail(ctx, float64(n))
+	addJail(ctx, float64(n), 5)
 	ctx.Rotate(gg.Radians(45))
-	addJail(ctx, float64(n)/math.Sqrt2)
+	addJail(ctx, float64(n)/math.Sqrt2, 5)
 	return ctx.Image(), false
 }
 
