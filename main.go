@@ -21,11 +21,11 @@ import (
 
 var lineCountList = []int{2, 5, 10, 30, 60, 120, 480}
 var sizeList = []image.Point{
-	image.Point{X: 3840, Y: 2160},
+	//	image.Point{X: 3840, Y: 2160},
 	image.Point{X: 3840, Y: 2400},
 }
 var sizeNames = []string{
-	"tv",
+	//	"tv",
 	"proj",
 }
 var imageFuncs = []func(image.Point, int) (image.Image, bool){
@@ -51,7 +51,6 @@ var imageFuncs = []func(image.Point, int) (image.Image, bool){
 	radialWedge,
 	radialWedgeOffsetX,
 	radialWedgeOffsetY,
-	newJail,
 	diamond,
 	crosshatch,
 }
@@ -97,88 +96,8 @@ func stripesdr(s image.Point, n int) (image.Image, bool) {
 }
 
 func field(s image.Point, n int) (image.Image, bool) {
-	pic, _, _ := newPallete(s, color.Gray16{uint16(n * 65535 / 500)})
+	pic, _, _ := newPallete(s, color.Gray16{uint16(n * 65535 / 480)})
 	return pic, true
-}
-
-func jailWhite(s image.Point, n int) (image.Image, bool) {
-	pic, b, long := newPallete(s, white)
-
-	w := (long / n) / 20
-	if w < 3 {
-		w = 3
-	}
-
-	longMin := b.Min.X
-	if s.Y > s.X {
-		longMin = b.Min.Y
-	}
-	for i := 1; i < n; i += 1 {
-		offset := longMin + long*i/n
-
-		// Vertical line
-		for y := b.Min.Y; y < b.Max.Y; y += 1 {
-			for j := offset - (w / 2); j < offset+(w/2); j += 1 {
-				pic.Set(j, y, black)
-			}
-		}
-
-		// Horizontal line
-		if offset > b.Min.Y && offset < b.Max.Y {
-			for x := b.Min.X; x < b.Max.X; x += 1 {
-				for j := offset - (w / 2); j < offset+(w/2); j += 1 {
-					pic.Set(x, j, black)
-				}
-			}
-		}
-	}
-	return pic, false
-}
-
-func jailMid(s image.Point, n int) (image.Image, bool) {
-	return jailGrey(s, n, midGray)
-}
-
-func jailDark(s image.Point, n int) (image.Image, bool) {
-	return jailGrey(s, n, darkGray)
-}
-
-func jailBlack(s image.Point, n int) (image.Image, bool) {
-	return jailGrey(s, n, black)
-}
-
-func jailGrey(s image.Point, n int, background color.RGBA64) (image.Image, bool) {
-	pic, b, long := newPallete(s, background)
-
-	w := (long / n) / 20
-	if w < 3 {
-		w = 3
-	}
-
-	longMin := b.Min.X
-	if s.Y > s.X {
-		longMin = b.Min.Y
-	}
-	for i := 1; i < n; i += 1 {
-		offset := longMin + long*i/n
-
-		// Vertical line
-		for y := b.Min.Y; y < b.Max.Y; y += 1 {
-			for j := offset - (w / 2); j < offset+(w/2); j += 1 {
-				pic.Set(j, y, white)
-			}
-		}
-
-		// Horizontal line
-		if offset > b.Min.Y && offset < b.Max.Y {
-			for x := b.Min.X; x < b.Max.X; x += 1 {
-				for j := offset - (w / 2); j < offset+(w/2); j += 1 {
-					pic.Set(x, j, white)
-				}
-			}
-		}
-	}
-	return pic, false
 }
 
 func stripesv(s image.Point, n int) (image.Image, bool) {
@@ -372,7 +291,7 @@ func addJail(ctx *gg.Context, div float64, maxLineWidth float64) {
 	width := float64(ctx.Width())
 	height := float64(ctx.Height())
 
-	lineWidth := 0.025 * width / div
+	lineWidth := 0.05 * width / div
 	if lineWidth > maxLineWidth {
 		lineWidth = maxLineWidth
 	}
@@ -380,8 +299,9 @@ func addJail(ctx *gg.Context, div float64, maxLineWidth float64) {
 
 	ctx.DrawLine(-width, 0, width, 0)
 	ctx.DrawLine(0, -height, 0, height)
+	ctx.Stroke()
 	for i := 1.0; true; i++ {
-		d := i * width / (div * 2)
+		d := i * width / div
 
 		if d > width && d > height {
 			break
@@ -395,9 +315,27 @@ func addJail(ctx *gg.Context, div float64, maxLineWidth float64) {
 	}
 }
 
-func newJail(s image.Point, n int) (image.Image, bool) {
+func jailWhite(s image.Point, n int) (image.Image, bool) {
 	ctx, _, _ := newCtx(s, white)
 	ctx.SetColor(black)
+	addJail(ctx, float64(n), 5)
+	return ctx.Image(), false
+}
+func jailBlack(s image.Point, n int) (image.Image, bool) {
+	ctx, _, _ := newCtx(s, black)
+	ctx.SetColor(white)
+	addJail(ctx, float64(n), 5)
+	return ctx.Image(), false
+}
+func jailDark(s image.Point, n int) (image.Image, bool) {
+	ctx, _, _ := newCtx(s, darkGray)
+	ctx.SetColor(white)
+	addJail(ctx, float64(n), 5)
+	return ctx.Image(), false
+}
+func jailMid(s image.Point, n int) (image.Image, bool) {
+	ctx, _, _ := newCtx(s, midGray)
+	ctx.SetColor(white)
 	addJail(ctx, float64(n), 5)
 	return ctx.Image(), false
 }
