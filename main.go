@@ -123,43 +123,6 @@ func check(s image.Point, intN int) (image.Image, bool) {
 	return ctx.Image(), false
 }
 
-func checkFix(pic *image.RGBA64) {
-	b := pic.Bounds()
-	topLeft := pic.At(b.Min.X+1, b.Min.Y+1)
-	topRight := pic.At(b.Max.X-1, b.Min.Y+1)
-	bottomLeft := pic.At(b.Min.X+1, b.Max.Y-1)
-	bottomRight := pic.At(b.Max.X-1, b.Max.Y-1)
-
-	left := pic.At(b.Min.X, b.Min.Y+1) != topLeft || pic.At(b.Min.X, b.Max.Y-1) != bottomLeft
-	right := pic.At(b.Max.X, b.Min.Y+1) != topRight || pic.At(b.Max.X, b.Max.Y-1) != bottomRight
-	top := pic.At(b.Min.X+1, b.Min.Y) != topLeft || pic.At(b.Max.X-1, b.Min.Y) != topRight
-	bottom := pic.At(b.Min.X+1, b.Max.Y) != bottomLeft || pic.At(b.Max.X-1, b.Max.Y) != bottomRight
-
-	if left {
-		for y := b.Min.Y; y < b.Max.Y; y += 1 {
-			pic.Set(b.Min.X, y, pic.At(b.Min.X+1, y))
-		}
-	}
-
-	if right {
-		for y := b.Min.Y; y < b.Max.Y; y += 1 {
-			pic.Set(b.Max.X, y, pic.At(b.Max.X-1, y))
-		}
-	}
-
-	if top {
-		for x := b.Min.X; x < b.Max.X; x += 1 {
-			pic.Set(x, b.Min.Y, pic.At(x, b.Min.Y+1))
-		}
-	}
-
-	if bottom {
-		for x := b.Min.X; x < b.Max.X; x += 1 {
-			pic.Set(x, b.Max.Y, pic.At(x, b.Max.Y-1))
-		}
-	}
-}
-
 func radial(s image.Point, numLines int) (image.Image, bool) {
 	pic, b, _ := newPallete(s, nil)
 
