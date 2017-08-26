@@ -64,27 +64,24 @@ var darkGray = color.RGBA64{16383, 16383, 16383, 65535}
 var midGray = color.RGBA64{32767, 32767, 32767, 65535}
 var white = color.RGBA64{65535, 65535, 65535, 65535}
 
-func stripe(s image.Point, Θ float64, n int) image.Image {
-	pic, b, long := newPallete(s, white)
+func field(s image.Point, n int) (image.Image, bool) {
+	ctx, _, _ := newCtx(s, color.Gray16{uint16(n * 65535 / 480)})
+	return ctx.Image(), true
+}
 
-	Θ = Θ * math.Pi / 180.0
-	slope := math.Tan(Θ)
+func stripe(s image.Point, Θ float64, intN int) image.Image {
+	ctx, _, long := newCtx(s, white)
+	ctx.Rotate(gg.Radians(Θ))
+	ctx.SetColor(black)
 
-	for y := b.Min.Y; y < b.Max.Y; y += 1 {
-		fy := float64(y)
-		for x := b.Min.X; x < b.Max.X; x += 1 {
-			b := fy - slope*float64(x)
-			xbit := int(b) * n / long
-			if b < 0 {
-				xbit = ^xbit
-			}
-			if xbit&1 != 0 {
-				pic.Set(x, y, black)
-			}
-		}
+	n := float64(intN)
+	f := long / n
+	for x := -n; x < n; x += 2 {
+		ctx.DrawRectangle(x*f, -long, f, long*2)
+		ctx.Fill()
 	}
 
-	return pic
+	return ctx.Image()
 }
 
 func stripesdl(s image.Point, n int) (image.Image, bool) {
@@ -95,49 +92,12 @@ func stripesdr(s image.Point, n int) (image.Image, bool) {
 	return stripe(s, -45, n), false
 }
 
-func field(s image.Point, n int) (image.Image, bool) {
-	pic, _, _ := newPallete(s, color.Gray16{uint16(n * 65535 / 480)})
-	return pic, true
-}
-
 func stripesv(s image.Point, n int) (image.Image, bool) {
-	pic, b, _ := newPallete(s, nil)
-
-	for y := b.Min.Y; y < b.Max.Y; y += 1 {
-		for x := b.Min.X; x < b.Max.X; x += 1 {
-			xbit := x * n / b.Max.X
-			if x < 0 {
-				xbit = ^xbit
-			}
-			pic.Set(x, y, color.Gray{uint8(255 * (xbit & 1))})
-		}
-	}
-
-	// Take care of single pixel areas on the edge.
-	checkFix(pic)
-
-	return pic, false
+	return stripe(s, 0, n), false
 }
 
 func stripesh(s image.Point, n int) (image.Image, bool) {
-	pic, b, _ := newPallete(s, white)
-
-	for y := b.Min.Y; y < b.Max.Y; y += 1 {
-		ybit := (y * n / b.Max.Y)
-		if y < 0 {
-			ybit = ^ybit
-		}
-		if ybit&1 != 0 {
-			for x := b.Min.X; x < b.Max.X; x += 1 {
-				pic.Set(x, y, black)
-			}
-		}
-	}
-
-	// Take care of single pixel areas on the edge.
-	checkFix(pic)
-
-	return pic, false
+	return stripe(s, 90, n), false
 }
 
 func check(s image.Point, intN int) (image.Image, bool) {
