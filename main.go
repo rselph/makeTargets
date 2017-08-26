@@ -140,27 +140,27 @@ func stripesh(s image.Point, n int) (image.Image, bool) {
 	return pic, false
 }
 
-func check(s image.Point, n int) (image.Image, bool) {
-	pic, b, long := newPallete(s, nil)
+func check(s image.Point, intN int) (image.Image, bool) {
+	ctx, _, long := newCtx(s, white)
+	ctx.SetColor(black)
 
-	for y := b.Min.Y; y < b.Max.Y; y += 1 {
-		ybit := (y * n / long)
-		if y < 0 {
-			ybit = ^ybit
+	n := float64(intN)
+	f := long / n
+	for y := -n / 2; y < n/2; y += 2 {
+		for x := -n / 2; x < n/2; x += 2 {
+			//			ctx.DrawRectangle(x*f+b.Min.X, y*f+b.Min.Y, f, f)
+			ctx.DrawRectangle(x*f, y*f, f, f)
+			ctx.Fill()
 		}
-		for x := b.Min.X; x < b.Max.X; x += 1 {
-			xbit := x * n / long
-			if x < 0 {
-				xbit = ^xbit
-			}
-			pic.Set(x, y, color.Gray{uint8(255 * ((xbit ^ ybit) & 1))})
+	}
+	for y := 1 - n/2; y < n/2; y += 2 {
+		for x := 1 - n/2; x < n/2; x += 2 {
+			ctx.DrawRectangle(x*f, y*f, f, f)
+			ctx.Fill()
 		}
 	}
 
-	// Take care of single pixel areas on the edge.
-	checkFix(pic)
-
-	return pic, false
+	return ctx.Image(), false
 }
 
 func checkFix(pic *image.RGBA64) {
