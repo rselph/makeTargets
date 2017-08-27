@@ -53,6 +53,7 @@ var imageFuncs = []func(image.Point, int) (image.Image, bool){
 	radialWedgeOffsetY,
 	diamond,
 	crosshatch,
+	honeycomb,
 }
 
 var sRGBLUT []uint16
@@ -277,6 +278,37 @@ func crosshatch(s image.Point, n int) (image.Image, bool) {
 	addJail(ctx, float64(n), 5)
 	ctx.Rotate(gg.Radians(45))
 	addJail(ctx, float64(n)/math.Sqrt2, 5)
+	return ctx.Image(), false
+}
+
+func honeycomb(s image.Point, nInt int) (image.Image, bool) {
+	ctx, b, l := newCtx(s, white)
+	ctx.SetColor(black)
+
+	n := float64(nInt)
+	step := l / n
+	r := step / 2
+	side := 2 * r * math.Sin(math.Pi/6)
+	wedge := math.Cos(math.Pi/3) * side
+	innerR := math.Cos(math.Pi/6) * r
+
+	lineWidth := 0.06 * l / n
+	if lineWidth > 6 {
+		lineWidth = 6
+	}
+	ctx.SetLineWidth(lineWidth)
+
+	for y := b.Min.Y; y < b.Max.Y+innerR; y += 2 * innerR {
+		for x := b.Min.X; x < b.Max.X+innerR; x += step + side {
+			ctx.DrawRegularPolygon(6, x, y, r, 0)
+			ctx.Stroke()
+		}
+		for x := b.Min.X + wedge + side; x < b.Max.X+innerR; x += step + side {
+			ctx.DrawRegularPolygon(6, x, y+innerR, r, 0)
+			ctx.Stroke()
+		}
+	}
+
 	return ctx.Image(), false
 }
 
