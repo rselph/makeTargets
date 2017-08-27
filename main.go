@@ -286,11 +286,11 @@ func honeycomb(s image.Point, nInt int) (image.Image, bool) {
 	ctx.SetColor(black)
 
 	n := float64(nInt)
-	step := l / n
-	r := step / 2
-	side := 2 * r * math.Sin(math.Pi/6)
-	wedge := math.Cos(math.Pi/3) * side
-	innerR := math.Cos(math.Pi/6) * r
+	d := l / n
+	r := d / 2
+	innerR := r * math.Cos(math.Pi/6)
+	side := d * math.Sin(math.Pi/6)
+	wedge := side * math.Cos(math.Pi/3)
 
 	lineWidth := 0.06 * l / n
 	if lineWidth > 6 {
@@ -299,11 +299,11 @@ func honeycomb(s image.Point, nInt int) (image.Image, bool) {
 	ctx.SetLineWidth(lineWidth)
 
 	for y := b.Min.Y; y < b.Max.Y+innerR; y += 2 * innerR {
-		for x := b.Min.X; x < b.Max.X+innerR; x += step + side {
+		for x := b.Min.X; x < b.Max.X+innerR; x += d + side {
 			ctx.DrawRegularPolygon(6, x, y, r, 0)
 			ctx.Stroke()
 		}
-		for x := b.Min.X + wedge + side; x < b.Max.X+innerR; x += step + side {
+		for x := b.Min.X + wedge + side; x < b.Max.X+innerR; x += d + side {
 			ctx.DrawRegularPolygon(6, x, y+innerR, r, 0)
 			ctx.Stroke()
 		}
