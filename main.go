@@ -53,6 +53,7 @@ var imageFuncs = []func(image.Point, int) (image.Image, bool){
 	radialWedgeOffsetY,
 	diamond,
 	crosshatch,
+	honeycomb,
 }
 
 var sRGBLUT []uint16
@@ -64,27 +65,24 @@ var darkGray = color.RGBA64{16383, 16383, 16383, 65535}
 var midGray = color.RGBA64{32767, 32767, 32767, 65535}
 var white = color.RGBA64{65535, 65535, 65535, 65535}
 
-func stripe(s image.Point, Θ float64, n int) image.Image {
-	pic, b, long := newPallete(s, white)
+func field(s image.Point, n int) (image.Image, bool) {
+	ctx, _, _ := newCtx(s, color.Gray16{uint16(n * 65535 / 480)})
+	return ctx.Image(), true
+}
 
-	Θ = Θ * math.Pi / 180.0
-	slope := math.Tan(Θ)
+func stripe(s image.Point, Θ float64, intN int) image.Image {
+	ctx, _, long := newCtx(s, white)
+	ctx.Rotate(gg.Radians(Θ))
+	ctx.SetColor(black)
 
-	for y := b.Min.Y; y < b.Max.Y; y += 1 {
-		fy := float64(y)
-		for x := b.Min.X; x < b.Max.X; x += 1 {
-			b := fy - slope*float64(x)
-			xbit := int(b) * n / long
-			if b < 0 {
-				xbit = ^xbit
-			}
-			if xbit&1 != 0 {
-				pic.Set(x, y, black)
-			}
-		}
+	n := float64(intN)
+	f := long / n
+	for x := -n; x < n; x += 2 {
+		ctx.DrawRectangle(x*f, -long, f, long*2)
+		ctx.Fill()
 	}
 
-	return pic
+	return ctx.Image()
 }
 
 func stripesdl(s image.Point, n int) (image.Image, bool) {
@@ -95,109 +93,35 @@ func stripesdr(s image.Point, n int) (image.Image, bool) {
 	return stripe(s, -45, n), false
 }
 
-func field(s image.Point, n int) (image.Image, bool) {
-	pic, _, _ := newPallete(s, color.Gray16{uint16(n * 65535 / 480)})
-	return pic, true
-}
-
 func stripesv(s image.Point, n int) (image.Image, bool) {
-	pic, b, _ := newPallete(s, nil)
-
-	for y := b.Min.Y; y < b.Max.Y; y += 1 {
-		for x := b.Min.X; x < b.Max.X; x += 1 {
-			xbit := x * n / b.Max.X
-			if x < 0 {
-				xbit = ^xbit
-			}
-			pic.Set(x, y, color.Gray{uint8(255 * (xbit & 1))})
-		}
-	}
-
-	// Take care of single pixel areas on the edge.
-	checkFix(pic)
-
-	return pic, false
+	return stripe(s, 0, n), false
 }
 
 func stripesh(s image.Point, n int) (image.Image, bool) {
-	pic, b, _ := newPallete(s, white)
-
-	for y := b.Min.Y; y < b.Max.Y; y += 1 {
-		ybit := (y * n / b.Max.Y)
-		if y < 0 {
-			ybit = ^ybit
-		}
-		if ybit&1 != 0 {
-			for x := b.Min.X; x < b.Max.X; x += 1 {
-				pic.Set(x, y, black)
-			}
-		}
-	}
-
-	// Take care of single pixel areas on the edge.
-	checkFix(pic)
-
-	return pic, false
+	return stripe(s, 90, n), false
 }
 
-func check(s image.Point, n int) (image.Image, bool) {
-	pic, b, long := newPallete(s, nil)
+func check(s image.Point, intN int) (image.Image, bool) {
+	ctx, _, long := newCtx(s, white)
+	ctx.SetColor(black)
 
-	for y := b.Min.Y; y < b.Max.Y; y += 1 {
-		ybit := (y * n / long)
-		if y < 0 {
-			ybit = ^ybit
+	n := float64(intN)
+	f := long / n
+	for y := -n / 2; y < n/2; y += 2 {
+		for x := -n / 2; x < n/2; x += 2 {
+			//			ctx.DrawRectangle(x*f+b.Min.X, y*f+b.Min.Y, f, f)
+			ctx.DrawRectangle(x*f, y*f, f, f)
+			ctx.Fill()
 		}
-		for x := b.Min.X; x < b.Max.X; x += 1 {
-			xbit := x * n / long
-			if x < 0 {
-				xbit = ^xbit
-			}
-			pic.Set(x, y, color.Gray{uint8(255 * ((xbit ^ ybit) & 1))})
+	}
+	for y := 1 - n/2; y < n/2; y += 2 {
+		for x := 1 - n/2; x < n/2; x += 2 {
+			ctx.DrawRectangle(x*f, y*f, f, f)
+			ctx.Fill()
 		}
 	}
 
-	// Take care of single pixel areas on the edge.
-	checkFix(pic)
-
-	return pic, false
-}
-
-func checkFix(pic *image.RGBA64) {
-	b := pic.Bounds()
-	topLeft := pic.At(b.Min.X+1, b.Min.Y+1)
-	topRight := pic.At(b.Max.X-1, b.Min.Y+1)
-	bottomLeft := pic.At(b.Min.X+1, b.Max.Y-1)
-	bottomRight := pic.At(b.Max.X-1, b.Max.Y-1)
-
-	left := pic.At(b.Min.X, b.Min.Y+1) != topLeft || pic.At(b.Min.X, b.Max.Y-1) != bottomLeft
-	right := pic.At(b.Max.X, b.Min.Y+1) != topRight || pic.At(b.Max.X, b.Max.Y-1) != bottomRight
-	top := pic.At(b.Min.X+1, b.Min.Y) != topLeft || pic.At(b.Max.X-1, b.Min.Y) != topRight
-	bottom := pic.At(b.Min.X+1, b.Max.Y) != bottomLeft || pic.At(b.Max.X-1, b.Max.Y) != bottomRight
-
-	if left {
-		for y := b.Min.Y; y < b.Max.Y; y += 1 {
-			pic.Set(b.Min.X, y, pic.At(b.Min.X+1, y))
-		}
-	}
-
-	if right {
-		for y := b.Min.Y; y < b.Max.Y; y += 1 {
-			pic.Set(b.Max.X, y, pic.At(b.Max.X-1, y))
-		}
-	}
-
-	if top {
-		for x := b.Min.X; x < b.Max.X; x += 1 {
-			pic.Set(x, b.Min.Y, pic.At(x, b.Min.Y+1))
-		}
-	}
-
-	if bottom {
-		for x := b.Min.X; x < b.Max.X; x += 1 {
-			pic.Set(x, b.Max.Y, pic.At(x, b.Max.Y-1))
-		}
-	}
+	return ctx.Image(), false
 }
 
 func radial(s image.Point, numLines int) (image.Image, bool) {
@@ -354,6 +278,37 @@ func crosshatch(s image.Point, n int) (image.Image, bool) {
 	addJail(ctx, float64(n), 5)
 	ctx.Rotate(gg.Radians(45))
 	addJail(ctx, float64(n)/math.Sqrt2, 5)
+	return ctx.Image(), false
+}
+
+func honeycomb(s image.Point, nInt int) (image.Image, bool) {
+	ctx, b, l := newCtx(s, white)
+	ctx.SetColor(black)
+
+	n := float64(nInt)
+	d := l / n
+	r := d / 2
+	innerR := r * math.Cos(math.Pi/6)
+	side := d * math.Sin(math.Pi/6)
+	wedge := side * math.Cos(math.Pi/3)
+
+	lineWidth := 0.06 * l / n
+	if lineWidth > 6 {
+		lineWidth = 6
+	}
+	ctx.SetLineWidth(lineWidth)
+
+	for y := b.Min.Y; y < b.Max.Y+innerR; y += 2 * innerR {
+		for x := b.Min.X; x < b.Max.X+innerR; x += d + side {
+			ctx.DrawRegularPolygon(6, x, y, r, 0)
+			ctx.Stroke()
+		}
+		for x := b.Min.X + wedge + side; x < b.Max.X+innerR; x += d + side {
+			ctx.DrawRegularPolygon(6, x, y+innerR, r, 0)
+			ctx.Stroke()
+		}
+	}
+
 	return ctx.Image(), false
 }
 
