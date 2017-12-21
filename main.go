@@ -21,14 +21,16 @@ import (
 
 var lineCountList = []int{2, 5, 10, 30, 60, 120, 480}
 var sizeList = []image.Point{
-	//	image.Point{X: 3840, Y: 2160},
+	image.Point{X: 3840, Y: 2160},
 	image.Point{X: 3840, Y: 2400},
 }
 var sizeNames = []string{
-	//	"tv",
+	"tv",
 	"proj",
 }
 var imageFuncs = []func(image.Point, int) (image.Image, bool){
+	rampLin,
+	ramp22,
 	jailWhite,
 	jailBlack,
 	jailDark,
@@ -99,6 +101,43 @@ func stripesv(s image.Point, n int) (image.Image, bool) {
 
 func stripesh(s image.Point, n int) (image.Image, bool) {
 	return stripe(s, 90, n), false
+}
+
+func ramp(s image.Point, n int, lut []uint16) image.Image {
+	pic, b, _ := newPallete(s, nil)
+	myRand := rand.New(rand.NewSource(38))
+
+	lin := make([]int, s.X)
+	for i := 0; i < s.X; i++ {
+		lin[i] = int(65535.0 * float64(i) / float64(s.X))
+	}
+
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		if ((y-b.Min.Y)*n/s.Y)%2 == 0 {
+			for x := b.Min.X; x < b.Max.X; x++ {
+				z := uint16(lin[x-b.Min.X])
+				pic.Set(x, y, color.RGBA64{z, z, z, 65535})
+			}
+		} else {
+			for x := b.Min.X; x < b.Max.X; x++ {
+				if myRand.Intn(65536) < lin[x-b.Min.X] {
+					pic.SetRGBA64(x, y, white)
+				} else {
+					pic.SetRGBA64(x, y, black)
+				}
+			}
+		}
+	}
+
+	return pic
+}
+
+func rampLin(s image.Point, n int) (image.Image, bool) {
+	return ramp(s, n, linearLUT), false
+}
+
+func ramp22(s image.Point, n int) (image.Image, bool) {
+	return ramp(s, n, sRGBLUT), false
 }
 
 func check(s image.Point, intN int) (image.Image, bool) {
@@ -469,28 +508,24 @@ func oneTask(imageFunc func(image.Point, int) (image.Image, bool), imgSize image
 		funcName = funcName[i+1:]
 	}
 
-	//	img, shouldDither := imageFunc(imgSize, numLines)
-	img, _ := imageFunc(imgSize, numLines)
+	img, shouldDither := imageFunc(imgSize, numLines)
+	//img, _ := imageFunc(imgSize, numLines)
 	if img == nil {
 		return
 	}
 
 	fileName := makeName(sizeName, funcName, imgSize, numLines)
-	//	if shouldDither {
-	//		wg.Add(1)
-	//		go func(img image.Image, fileName string) {
-	//			defer wg.Done()
-	//			dith := ditherize(img)
-	//			fileName += "_dith"
-	//			fmt.Println(fileName)
-	//			save(dith, fileName)
-	//		}(img, fileName)
-	//	}
 
-	srgbImg := srgbConvert(img, linearLUT)
+	srgbImg := srgbConvert(img, sRGBLUT)
 	fmt.Println(fileName)
 	save(srgbImg, fileName)
 
+	if shouldDither {
+		dith := ditherize(img)
+		fileName += "_dith"
+		fmt.Println(fileName)
+		save(dith, fileName)
+	}
 }
 
 func makeName(sizeName, typeName string, imgSize image.Point, numLines int) string {
