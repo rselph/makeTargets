@@ -518,15 +518,15 @@ func worker(in chan *imageJob, wg *sync.WaitGroup) {
 	}
 }
 
-func oneTask(imageFunc func(image.Point, int) (image.Image, bool), imgSize image.Point, numLines int, sizeName string) {
+func oneTask(iFunc imageFunc, imgSize image.Point, numLines int, sizeName string) {
 
-	funcAddr := reflect.ValueOf(imageFunc).Pointer()
+	funcAddr := reflect.ValueOf(iFunc).Pointer()
 	funcName := runtime.FuncForPC(funcAddr).Name()
 	if i := strings.LastIndex(funcName, "."); i >= 0 {
 		funcName = funcName[i+1:]
 	}
 
-	img, shouldDither := imageFunc(imgSize, numLines)
+	img, shouldDither := iFunc(imgSize, numLines)
 	//img, _ := imageFunc(imgSize, numLines)
 	if img == nil {
 		return
