@@ -15,22 +15,32 @@ import (
 	"strings"
 	"sync"
 
+	"flag"
+
 	"github.com/fogleman/gg"
 	"golang.org/x/image/tiff"
 )
 
+type imageFunc func(image.Point, int) (image.Image, bool)
+type renderSet struct {
+	name       string
+	size       image.Point
+	imageFuncs []imageFunc
+}
+
 var lineCountList = []int{2, 5, 10, 30, 60, 120, 480}
-var sizeList = []image.Point{
-	image.Point{X: 3840, Y: 2160},
-	image.Point{X: 3840, Y: 2400},
+var renderSets = []renderSet{
+	{"tv", image.Point{3840, 2160}, imageFuncs},
+	{"proj", image.Point{3840, 2400}, imageFuncs},
+	{"test", image.Point{1920, 1080}, testFuncs},
 }
-var sizeNames = []string{
-	"tv",
-	"proj",
-}
-var imageFuncs = []func(image.Point, int) (image.Image, bool){
+
+var testFuncs = []imageFunc{
 	rampLin,
 	ramp22,
+}
+
+var imageFuncs = []imageFunc{
 	jailWhite,
 	jailBlack,
 	jailDark,
@@ -465,7 +475,8 @@ func doDot(s image.Point, n int, foreground, background color.Color) (image.Imag
 func main() {
 	var wg sync.WaitGroup
 
-	initsRGBLUT()
+	flag.Parse()
+	initLUTs()
 
 	queue := make(chan *imageJob)
 	for j := 0; j < runtime.NumCPU(); j++ {
@@ -473,14 +484,17 @@ func main() {
 		go worker(queue, &wg)
 	}
 
-	for i, sizeName := range sizeNames {
+	for _, set := range renderSets {
+		if flag.Arg(0) != "" && set.name != flag.Arg(0) {
+			continue
+		}
 		for _, numLines := range lineCountList {
-			for _, imageFunc := range imageFuncs {
+			for _, ifunc := range set.imageFuncs {
 				queue <- &imageJob{
-					imageFunc: imageFunc,
-					imgSize:   sizeList[i],
+					imageFunc: ifunc,
+					imgSize:   set.size,
 					numLines:  numLines,
-					sizeName:  sizeName,
+					sizeName:  set.name,
 				}
 			}
 		}
@@ -643,7 +657,7 @@ func srgbConvert(in image.Image, lut []uint16) image.Image {
 	return out
 }
 
-func initsRGBLUT() {
+func initLUTs() {
 	a := 0.055
 	e := 1.0 / 2.4
 	a1 := a + 1.0
