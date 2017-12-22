@@ -58,14 +58,19 @@ var imageFuncs = []func(image.Point, int) (image.Image, bool){
 	honeycomb,
 }
 
-var sRGBLUT []uint16
-var inversesRGBLUT []uint16
-var linearLUT []uint16
+var (
+	sRGBLUT        []uint16
+	inversesRGBLUT []uint16
+	gamma22LUT     []uint16
+	linearLUT      []uint16
+)
 
-var black = color.RGBA64{0, 0, 0, 65535}
-var darkGray = color.RGBA64{16383, 16383, 16383, 65535}
-var midGray = color.RGBA64{32767, 32767, 32767, 65535}
-var white = color.RGBA64{65535, 65535, 65535, 65535}
+var (
+	black    = color.RGBA64{0, 0, 0, 65535}
+	darkGray = color.RGBA64{16383, 16383, 16383, 65535}
+	midGray  = color.RGBA64{32767, 32767, 32767, 65535}
+	white    = color.RGBA64{65535, 65535, 65535, 65535}
+)
 
 func field(s image.Point, n int) (image.Image, bool) {
 	ctx, _, _ := newCtx(s, color.Gray16{uint16(n * 65535 / 480)})
@@ -104,26 +109,25 @@ func stripesh(s image.Point, n int) (image.Image, bool) {
 }
 
 func ramp(s image.Point, n int, lut []uint16) image.Image {
-	pic, b, _ := newPallete(s, nil)
+	pic, b, _ := newPallete(s, black)
 	myRand := rand.New(rand.NewSource(38))
 
-	lin := make([]int, s.X)
+	lin := make([]uint16, s.X)
+	linColor := make([]color.RGBA64, s.X)
 	for i := 0; i < s.X; i++ {
-		lin[i] = int(65535.0 * float64(i) / float64(s.X))
+		lin[i] = uint16(65535.0 * float64(i) / float64(s.X))
+		linColor[i] = color.RGBA64{lin[i], lin[i], lin[i], 65535}
 	}
 
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		if ((y-b.Min.Y)*n/s.Y)%2 == 0 {
 			for x := b.Min.X; x < b.Max.X; x++ {
-				z := uint16(lin[x-b.Min.X])
-				pic.Set(x, y, color.RGBA64{z, z, z, 65535})
+				pic.Set(x, y, linColor[x-b.Min.X])
 			}
 		} else {
 			for x := b.Min.X; x < b.Max.X; x++ {
-				if myRand.Intn(65536) < lin[x-b.Min.X] {
+				if uint16(myRand.Int()) < lut[lin[x-b.Min.X]] {
 					pic.SetRGBA64(x, y, white)
-				} else {
-					pic.SetRGBA64(x, y, black)
 				}
 			}
 		}
@@ -137,7 +141,7 @@ func rampLin(s image.Point, n int) (image.Image, bool) {
 }
 
 func ramp22(s image.Point, n int) (image.Image, bool) {
-	return ramp(s, n, sRGBLUT), false
+	return ramp(s, n, gamma22LUT), false
 }
 
 func check(s image.Point, intN int) (image.Image, bool) {
@@ -665,6 +669,13 @@ func initsRGBLUT() {
 			cl = math.Pow((csrgb+a)/a1, 2.4)
 		}
 		inversesRGBLUT[i] = uint16(cl * 65535.0)
+	}
+
+	gamma := 2.2
+	gamma22LUT = make([]uint16, 65536)
+	for i := range gamma22LUT {
+		cl = float64(i) / 65535.0
+		gamma22LUT[i] = uint16(math.Pow(cl, gamma) * 65535.0)
 	}
 
 	linearLUT = make([]uint16, 65536)
