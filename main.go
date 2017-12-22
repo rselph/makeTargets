@@ -38,6 +38,7 @@ var renderSets = []renderSet{
 var testFuncs = []imageFunc{
 	rampLin,
 	ramp22,
+	rampi22,
 }
 
 var imageFuncs = []imageFunc{
@@ -69,10 +70,11 @@ var imageFuncs = []imageFunc{
 }
 
 var (
-	sRGBLUT        []uint16
-	inversesRGBLUT []uint16
-	gamma22LUT     []uint16
-	linearLUT      []uint16
+	sRGBLUT           []uint16
+	inversesRGBLUT    []uint16
+	gamma22LUT        []uint16
+	inverseGamma22LUT []uint16
+	linearLUT         []uint16
 )
 
 var (
@@ -152,6 +154,10 @@ func rampLin(s image.Point, n int) (image.Image, bool) {
 
 func ramp22(s image.Point, n int) (image.Image, bool) {
 	return ramp(s, n, gamma22LUT), false
+}
+
+func rampi22(s image.Point, n int) (image.Image, bool) {
+	return ramp(s, n, inverseGamma22LUT), false
 }
 
 func check(s image.Point, intN int) (image.Image, bool) {
@@ -690,6 +696,11 @@ func initLUTs() {
 	for i := range gamma22LUT {
 		cl = float64(i) / 65535.0
 		gamma22LUT[i] = uint16(math.Pow(cl, gamma) * 65535.0)
+	}
+	inverseGamma22LUT = make([]uint16, 65536)
+	for i := range inverseGamma22LUT {
+		cl = float64(i) / 65535.0
+		inverseGamma22LUT[i] = uint16(math.Pow(cl, 1.0/gamma) * 65535.0)
 	}
 
 	linearLUT = make([]uint16, 65536)
