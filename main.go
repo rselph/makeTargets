@@ -36,9 +36,12 @@ var renderSets = []renderSet{
 }
 
 var testFuncs = []imageFunc{
-	rampLin,
-	ramp22,
-	rampi22,
+	rampLinDither,
+	ramp22Dither,
+	//rampi22Dither,
+	rampLinCheck,
+	ramp22Check,
+	//rampi22Check,
 }
 
 var imageFuncs = []imageFunc{
@@ -120,7 +123,7 @@ func stripesh(s image.Point, n int) (image.Image, bool) {
 	return stripe(s, 90, n), false
 }
 
-func ramp(s image.Point, n int, lut []uint16) image.Image {
+func rampDither(s image.Point, n int, lut []uint16) image.Image {
 	pic, b, _ := newPallete(s, black)
 	myRand := rand.New(rand.NewSource(38))
 
@@ -148,16 +151,77 @@ func ramp(s image.Point, n int, lut []uint16) image.Image {
 	return pic
 }
 
-func rampLin(s image.Point, n int) (image.Image, bool) {
-	return ramp(s, n, linearLUT), false
+func rampLinDither(s image.Point, n int) (image.Image, bool) {
+	return rampDither(s, n, linearLUT), false
 }
 
-func ramp22(s image.Point, n int) (image.Image, bool) {
-	return ramp(s, n, gamma22LUT), false
+func ramp22Dither(s image.Point, n int) (image.Image, bool) {
+	return rampDither(s, n, gamma22LUT), false
 }
 
-func rampi22(s image.Point, n int) (image.Image, bool) {
-	return ramp(s, n, inverseGamma22LUT), false
+func rampi22Dither(s image.Point, n int) (image.Image, bool) {
+	return rampDither(s, n, inverseGamma22LUT), false
+}
+
+func rampCheck(s image.Point, n int, lut []uint16) image.Image {
+	pic, b, _ := newPallete(s, black)
+
+	linColor := make([]color.RGBA64, s.X)
+	surroundLo := make([]color.RGBA64, s.X)
+	surroundHi := make([]color.RGBA64, s.X)
+	for i := 0; i < s.X; i++ {
+		lin := uint16(65535.0 * float64(i) / float64(s.X))
+		linColor[i] = color.RGBA64{lin, lin, lin, 65535}
+		lo, hi := surroundLevels(lin)
+		lo = lut[lo]
+		hi = lut[hi]
+		surroundLo[i] = color.RGBA64{lo, lo, lo, 65535}
+		surroundHi[i] = color.RGBA64{hi, hi, hi, 65535}
+	}
+
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		if ((y-b.Min.Y)*n/s.Y)%2 == 0 {
+			for x := b.Min.X; x < b.Max.X; x++ {
+				pic.Set(x, y, linColor[x-b.Min.X])
+			}
+		} else {
+			for x := b.Min.X; x < b.Max.X; x++ {
+				if (x+y)%2 == 0 {
+					pic.SetRGBA64(x, y, surroundLo[x-b.Min.X])
+				} else {
+					pic.SetRGBA64(x, y, surroundHi[x-b.Min.X])
+				}
+			}
+		}
+	}
+
+	return pic
+}
+
+const delta = 64 * 256
+
+func surroundLevels(target16 uint16) (uint16, uint16) {
+	target := int32(target16)
+	switch {
+	//case target >= delta && target <= 65535-delta:
+	//	return uint16(target - delta), uint16(target + delta)
+	case target < 32768:
+		return 0, uint16(2 * target)
+	default:
+		return uint16(-65535 + 2*target), 65535
+	}
+}
+
+func rampLinCheck(s image.Point, n int) (image.Image, bool) {
+	return rampCheck(s, n, linearLUT), false
+}
+
+func ramp22Check(s image.Point, n int) (image.Image, bool) {
+	return rampCheck(s, n, gamma22LUT), false
+}
+
+func rampi22Check(s image.Point, n int) (image.Image, bool) {
+	return rampCheck(s, n, inverseGamma22LUT), false
 }
 
 func check(s image.Point, intN int) (image.Image, bool) {
