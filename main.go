@@ -186,7 +186,7 @@ func rampCheck(s image.Point, n int, lut []uint16) image.Image {
 			}
 		} else {
 			for x := b.Min.X; x < b.Max.X; x++ {
-				if (x+y)%2 == 0 {
+				if (x)&1 == 0 {
 					pic.SetRGBA64(x, y, surroundLo[x-b.Min.X])
 				} else {
 					pic.SetRGBA64(x, y, surroundHi[x-b.Min.X])
@@ -198,18 +198,12 @@ func rampCheck(s image.Point, n int, lut []uint16) image.Image {
 	return pic
 }
 
-const delta = 64 * 256
-
 func surroundLevels(target16 uint16) (uint16, uint16) {
 	target := int32(target16)
-	switch {
-	//case target >= delta && target <= 65535-delta:
-	//	return uint16(target - delta), uint16(target + delta)
-	case target < 32768:
+	if target < 32768 {
 		return 0, uint16(2 * target)
-	default:
-		return uint16(-65535 + 2*target), 65535
 	}
+	return uint16(-65535 + 2*target), 65535
 }
 
 func rampLinCheck(s image.Point, n int) (image.Image, bool) {
@@ -755,16 +749,16 @@ func initLUTs() {
 		inversesRGBLUT[i] = uint16(cl * 65535.0)
 	}
 
-	gamma := 2.2
+	𝛾 := 2.2
 	gamma22LUT = make([]uint16, 65536)
 	for i := range gamma22LUT {
 		cl = float64(i) / 65535.0
-		gamma22LUT[i] = uint16(math.Pow(cl, gamma) * 65535.0)
+		gamma22LUT[i] = uint16(math.Pow(cl, 𝛾) * 65535.0)
 	}
 	inverseGamma22LUT = make([]uint16, 65536)
 	for i := range inverseGamma22LUT {
 		cl = float64(i) / 65535.0
-		inverseGamma22LUT[i] = uint16(math.Pow(cl, 1.0/gamma) * 65535.0)
+		inverseGamma22LUT[i] = uint16(math.Pow(cl, 1.0/𝛾) * 65535.0)
 	}
 
 	linearLUT = make([]uint16, 65536)
