@@ -38,10 +38,8 @@ var renderSets = []renderSet{
 var testFuncs = []imageFunc{
 	rampLinDither,
 	ramp22Dither,
-	//rampi22Dither,
 	rampLinCheck,
 	ramp22Check,
-	//rampi22Check,
 }
 
 var imageFuncs = []imageFunc{
@@ -73,11 +71,10 @@ var imageFuncs = []imageFunc{
 }
 
 var (
-	sRGBLUT           []uint16
-	inversesRGBLUT    []uint16
-	gamma22LUT        []uint16
-	inverseGamma22LUT []uint16
-	linearLUT         []uint16
+	sRGBLUT        []uint16
+	inversesRGBLUT []uint16
+	gamma22LUT     []uint16
+	linearLUT      []uint16
 )
 
 var (
@@ -159,10 +156,6 @@ func ramp22Dither(s image.Point, n int) (image.Image, bool) {
 	return rampDither(s, n, gamma22LUT), false
 }
 
-func rampi22Dither(s image.Point, n int) (image.Image, bool) {
-	return rampDither(s, n, inverseGamma22LUT), false
-}
-
 func rampCheck(s image.Point, n int, lut []uint16) image.Image {
 	pic, b, _ := newPallete(s, black)
 
@@ -212,10 +205,6 @@ func rampLinCheck(s image.Point, n int) (image.Image, bool) {
 
 func ramp22Check(s image.Point, n int) (image.Image, bool) {
 	return rampCheck(s, n, gamma22LUT), false
-}
-
-func rampi22Check(s image.Point, n int) (image.Image, bool) {
-	return rampCheck(s, n, inverseGamma22LUT), false
 }
 
 func check(s image.Point, intN int) (image.Image, bool) {
@@ -754,11 +743,6 @@ func initLUTs() {
 	for i := range gamma22LUT {
 		cl = float64(i) / 65535.0
 		gamma22LUT[i] = uint16(math.Pow(cl, 𝛾) * 65535.0)
-	}
-	inverseGamma22LUT = make([]uint16, 65536)
-	for i := range inverseGamma22LUT {
-		cl = float64(i) / 65535.0
-		inverseGamma22LUT[i] = uint16(math.Pow(cl, 1.0/𝛾) * 65535.0)
 	}
 
 	linearLUT = make([]uint16, 65536)
