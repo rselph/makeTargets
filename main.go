@@ -32,14 +32,6 @@ var lineCountList = []int{2, 5, 10, 30, 60, 120, 480}
 var renderSets = []renderSet{
 	{"tv", image.Point{3840, 2160}, imageFuncs},
 	{"proj", image.Point{3840, 2400}, imageFuncs},
-	{"test", image.Point{1920, 1080}, testFuncs},
-}
-
-var testFuncs = []imageFunc{
-	rampLinDither,
-	ramp22Dither,
-	rampLinCheck,
-	ramp22Check,
 }
 
 var imageFuncs = []imageFunc{
@@ -118,93 +110,6 @@ func stripesv(s image.Point, n int) (image.Image, bool) {
 
 func stripesh(s image.Point, n int) (image.Image, bool) {
 	return stripe(s, 90, n), false
-}
-
-func rampDither(s image.Point, n int, lut []uint16) image.Image {
-	pic, b, _ := newPallete(s, black)
-	myRand := rand.New(rand.NewSource(38))
-
-	lin := make([]uint16, s.X)
-	linColor := make([]color.RGBA64, s.X)
-	for i := 0; i < s.X; i++ {
-		lin[i] = uint16(65535.0 * float64(i) / float64(s.X))
-		linColor[i] = color.RGBA64{lin[i], lin[i], lin[i], 65535}
-	}
-
-	for y := b.Min.Y; y < b.Max.Y; y++ {
-		if ((y-b.Min.Y)*n/s.Y)%2 == 0 {
-			for x := b.Min.X; x < b.Max.X; x++ {
-				pic.Set(x, y, linColor[x-b.Min.X])
-			}
-		} else {
-			for x := b.Min.X; x < b.Max.X; x++ {
-				if uint16(myRand.Int()) < lut[lin[x-b.Min.X]] {
-					pic.SetRGBA64(x, y, white)
-				}
-			}
-		}
-	}
-
-	return pic
-}
-
-func rampLinDither(s image.Point, n int) (image.Image, bool) {
-	return rampDither(s, n, linearLUT), false
-}
-
-func ramp22Dither(s image.Point, n int) (image.Image, bool) {
-	return rampDither(s, n, gamma22LUT), false
-}
-
-func rampCheck(s image.Point, n int, lut []uint16) image.Image {
-	pic, b, _ := newPallete(s, black)
-
-	linColor := make([]color.RGBA64, s.X)
-	surroundLo := make([]color.RGBA64, s.X)
-	surroundHi := make([]color.RGBA64, s.X)
-	for i := 0; i < s.X; i++ {
-		lin := uint16(65535.0 * float64(i) / float64(s.X))
-		linColor[i] = color.RGBA64{lin, lin, lin, 65535}
-		lo, hi := surroundLevels(lin)
-		lo = lut[lo]
-		hi = lut[hi]
-		surroundLo[i] = color.RGBA64{lo, lo, lo, 65535}
-		surroundHi[i] = color.RGBA64{hi, hi, hi, 65535}
-	}
-
-	for y := b.Min.Y; y < b.Max.Y; y++ {
-		if ((y-b.Min.Y)*n/s.Y)%2 == 0 {
-			for x := b.Min.X; x < b.Max.X; x++ {
-				pic.Set(x, y, linColor[x-b.Min.X])
-			}
-		} else {
-			for x := b.Min.X; x < b.Max.X; x++ {
-				if (x)&1 == 0 {
-					pic.SetRGBA64(x, y, surroundLo[x-b.Min.X])
-				} else {
-					pic.SetRGBA64(x, y, surroundHi[x-b.Min.X])
-				}
-			}
-		}
-	}
-
-	return pic
-}
-
-func surroundLevels(target16 uint16) (uint16, uint16) {
-	target := int32(target16)
-	if target < 32768 {
-		return 0, uint16(2 * target)
-	}
-	return uint16(-65535 + 2*target), 65535
-}
-
-func rampLinCheck(s image.Point, n int) (image.Image, bool) {
-	return rampCheck(s, n, linearLUT), false
-}
-
-func ramp22Check(s image.Point, n int) (image.Image, bool) {
-	return rampCheck(s, n, gamma22LUT), false
 }
 
 func check(s image.Point, intN int) (image.Image, bool) {
