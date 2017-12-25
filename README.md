@@ -1,2 +1,2 @@
 # makeTargets
-Program to produce a variety of test images at various sizes
+Program to produce a variety of geometric images at various sizes
