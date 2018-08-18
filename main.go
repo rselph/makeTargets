@@ -598,7 +598,7 @@ func ditherize(in image.Image) image.Image {
 		}
 	}
 
-	return out
+	return gaussianBlur(out, 1.0)
 }
 
 func srgbConvert(in image.Image, lut []uint16) image.Image {
