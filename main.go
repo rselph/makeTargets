@@ -61,6 +61,7 @@ var imageFuncs = []imageFunc{
 	diamond,
 	crosshatch,
 	honeycomb,
+	ss,
 }
 
 var (
@@ -340,6 +341,32 @@ func honeycomb(s image.Point, nInt int) (image.Image, bool) {
 			ctx.DrawRegularPolygon(6, x, y+innerR, r, 0)
 			ctx.Stroke()
 		}
+	}
+
+	return ctx.Image(), false
+}
+
+func ss(s image.Point, nInt int) (image.Image, bool) {
+	ctx, b, l := newCtx(s, white)
+	ctx.SetColor(black)
+
+	n := float64(nInt)
+	lineWidth := 0.06 * l / n
+	if lineWidth > 6 {
+		lineWidth = 6
+	}
+	ctx.SetLineWidth(lineWidth)
+
+	dx := b.Max.X/n
+	dy := b.Max.Y/n
+	for i := 0.0 ; i <= n ; i++ {
+		xDelta := dx * i
+		yDelta := b.Max.Y - dy * i
+		ctx.DrawLine(0, yDelta, xDelta, 0)
+		ctx.DrawLine(xDelta, 0, 0, -yDelta)
+		ctx.DrawLine(0, -yDelta, -xDelta, 0)
+		ctx.DrawLine(-xDelta, 0, 0, yDelta)
+		ctx.Stroke()
 	}
 
 	return ctx.Image(), false
