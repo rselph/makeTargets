@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"image/png"
 	"log"
 	"math"
 	"math/rand"
@@ -18,7 +19,6 @@ import (
 	"flag"
 
 	"github.com/fogleman/gg"
-	"golang.org/x/image/tiff"
 )
 
 type imageFunc func(image.Point, int) (image.Image, bool)
@@ -588,13 +588,13 @@ func newCtx(s image.Point, background color.Color) (ctx *gg.Context, b floatRect
 }
 
 func save(i image.Image, name string) {
-	w, err := os.Create(name + ".tiff")
+	w, err := os.Create(name + ".png")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer w.Close()
 
-	err = tiff.Encode(w, i, &tiff.Options{Compression: tiff.Deflate, Predictor: true})
+	err = png.Encode(w, i)
 	if err != nil {
 		log.Fatal(err)
 	}
