@@ -39,6 +39,7 @@ var imageFuncs = []imageFunc{
 	jailBlack,
 	jailDark,
 	jailMid,
+	jailCheck,
 	check,
 	radial,
 	rings,
@@ -112,12 +113,15 @@ func stripesh(s image.Point, n int) (image.Image, bool) {
 	return stripe(s, 90, n), false
 }
 
-func check(s image.Point, intN int) (image.Image, bool) {
-	ctx, _, long := newCtx(s, white)
-	ctx.SetColor(black)
-
+func checkCtx(ctx *gg.Context, intN int) {
 	n := float64(intN)
-	f := long / n
+	var f float64
+	if ctx.Width() > ctx.Height() {
+		f = float64(ctx.Width()) / n
+	} else {
+		f = float64(ctx.Height()) / n
+	}
+
 	for y := -n / 2; y < n/2; y += 2 {
 		for x := -n / 2; x < n/2; x += 2 {
 			//			ctx.DrawRectangle(x*f+b.Min.X, y*f+b.Min.Y, f, f)
@@ -131,6 +135,13 @@ func check(s image.Point, intN int) (image.Image, bool) {
 			ctx.Fill()
 		}
 	}
+}
+
+func check(s image.Point, intN int) (image.Image, bool) {
+	ctx, _, _ := newCtx(s, white)
+	ctx.SetColor(black)
+
+	checkCtx(ctx, intN)
 
 	return ctx.Image(), false
 }
@@ -248,6 +259,17 @@ func addJail(ctx *gg.Context, div float64, maxLineWidth float64) {
 		ctx.DrawLine(-d, -height, -d, height)
 		ctx.Stroke()
 	}
+}
+
+func jailCheck(s image.Point, n int) (image.Image, bool) {
+	ctx, _, _ := newCtx(s, white)
+
+	ctx.SetColor(gray(.25))
+	checkCtx(ctx, n)
+
+	ctx.SetColor(black)
+	addJail(ctx, float64(n), 5)
+	return ctx.Image(), false
 }
 
 func jailWhite(s image.Point, n int) (image.Image, bool) {
