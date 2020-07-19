@@ -9,7 +9,6 @@ import (
 	"image/png"
 	"log"
 	"math"
-	"math/rand"
 	"os"
 	"reflect"
 	"runtime"
@@ -533,7 +532,7 @@ func oneTask(iFunc imageFunc, imgSize image.Point, numLines int, sizeName string
 		funcName = funcName[i+1:]
 	}
 
-	img, shouldDither := iFunc(imgSize, numLines)
+	img, shouldClamp := iFunc(imgSize, numLines)
 	//img, _ := imageFunc(imgSize, numLines)
 	if img == nil {
 		return
@@ -545,11 +544,11 @@ func oneTask(iFunc imageFunc, imgSize image.Point, numLines int, sizeName string
 	fmt.Println(fileName)
 	save(srgbImg, fileName)
 
-	if shouldDither {
-		dith := ditherize(img)
-		fileName += "_dith"
+	if shouldClamp {
+		clamp := clamp(img)
+		fileName += "_clamp"
 		fmt.Println(fileName)
-		save(dith, fileName)
+		save(clamp, fileName)
 	}
 }
 
@@ -631,15 +630,14 @@ func gray(z float64) color.Color {
 	return color.Gray16{uint16((z + 1.0) * 32767.5)}
 }
 
-func ditherize(in image.Image) image.Image {
+func clamp(in image.Image) image.Image {
 	b := in.Bounds()
 	out := image.NewRGBA64(b)
-	myRand := rand.New(rand.NewSource(42))
 
 	for y := b.Min.Y; y < b.Max.Y; y += 1 {
 		for x := b.Min.X; x < b.Max.X; x += 1 {
 			r, _, _, _ := in.At(x, y).RGBA()
-			if myRand.Uint32()&0xFFFF < r {
+			if r > 0x7fff {
 				out.SetRGBA64(x, y, white)
 			} else {
 				out.SetRGBA64(x, y, black)
