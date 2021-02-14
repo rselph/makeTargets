@@ -61,6 +61,7 @@ var imageFuncs = []imageFunc{
 	crosshatch,
 	honeycomb,
 	ss,
+	squareWave,
 }
 
 var (
@@ -412,6 +413,21 @@ func radialWave(s image.Point, n int) (image.Image, bool) {
 		for x := b.Min.X; x < b.Max.X; x += 1 {
 			Θ := math.Atan2(float64(y), float64(x))
 			z := math.Cos(math.Pi + Θ*fn)
+			pic.Set(x, y, gray(z))
+		}
+	}
+
+	return pic, true
+}
+
+func squareWave(s image.Point, n int) (image.Image, bool) {
+	const exp = 100.0
+	pic, b, _ := newPallete(s, nil)
+
+	for y := b.Min.Y; y < b.Max.Y; y += 1 {
+		zp := math.Cos(math.Pow(math.Abs(float64(y)), float64(n)/exp))
+		for x := b.Min.X; x < b.Max.X; x += 1 {
+			z := zp * math.Cos(math.Pow(math.Abs(float64(x)), float64(n)/100.0))
 			pic.Set(x, y, gray(z))
 		}
 	}
