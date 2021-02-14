@@ -30,7 +30,7 @@ type renderSet struct {
 var lineCountList = []int{2, 5, 10, 30, 60, 120, 480}
 var renderSets = []renderSet{
 	{"tv", image.Point{3840, 2160}, imageFuncs},
-	{"proj", image.Point{3840, 2400}, imageFuncs},
+	//{"proj", image.Point{3840, 2400}, imageFuncs},
 }
 
 var imageFuncs = []imageFunc{
