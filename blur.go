@@ -1,9 +1,9 @@
 package main
 
 import (
+	"image"
 	"image/color"
 	"math"
-	"image"
 	"sync"
 )
 

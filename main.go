@@ -2,6 +2,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -14,8 +15,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-
-	"flag"
 
 	"github.com/fogleman/gg"
 )
@@ -30,7 +29,7 @@ type renderSet struct {
 var lineCountList = []int{2, 5, 10, 30, 60, 120, 480}
 var renderSets = []renderSet{
 	//{"tv", image.Point{3840, 2160}, imageFuncs},
-	{"tvx2", image.Point{3840*2, 2160*2}, imageFuncs},
+	{name: "tvx2", size: image.Point{X: 3840 * 2, Y: 2160 * 2}, imageFuncs: imageFuncs},
 	//{"proj", image.Point{3840, 2400}, imageFuncs},
 }
 
@@ -73,20 +72,20 @@ var (
 )
 
 var (
-	black    = color.RGBA64{0, 0, 0, 65535}
-	darkGray = color.RGBA64{16383, 16383, 16383, 65535}
-	midGray  = color.RGBA64{32767, 32767, 32767, 65535}
-	white    = color.RGBA64{65535, 65535, 65535, 65535}
+	black    = color.RGBA64{A: 65535}
+	darkGray = color.RGBA64{R: 16383, G: 16383, B: 16383, A: 65535}
+	midGray  = color.RGBA64{R: 32767, G: 32767, B: 32767, A: 65535}
+	white    = color.RGBA64{R: 65535, G: 65535, B: 65535, A: 65535}
 )
 
 func field(s image.Point, n int) (image.Image, bool) {
-	ctx, _, _ := newCtx(s, color.Gray16{uint16(n * 65535 / 480)})
+	ctx, _, _ := newCtx(s, color.Gray16{Y: uint16(n * 65535 / 480)})
 	return ctx.Image(), true
 }
 
-func stripe(s image.Point, Θ float64, intN int) image.Image {
+func stripe(s image.Point, theta float64, intN int) image.Image {
 	ctx, _, long := newCtx(s, white)
-	ctx.Rotate(gg.Radians(Θ))
+	ctx.Rotate(gg.Radians(theta))
 	ctx.SetColor(black)
 
 	n := float64(intN)
@@ -207,7 +206,7 @@ func ringFade(s image.Point, n int) (image.Image, bool) {
 		fy2 := fy * fy
 		for x := b.Min.X; x < b.Max.X; x += 1 {
 			if x == 0 && y == 0 {
-				pic.Set(x, y, color.Gray{255})
+				pic.Set(x, y, color.Gray{Y: 255})
 			} else {
 				fx := float64(x)
 				r := math.Sqrt(fx*fx+fy2) * f
@@ -358,11 +357,11 @@ func ss(s image.Point, nInt int) (image.Image, bool) {
 	}
 	ctx.SetLineWidth(lineWidth)
 
-	dx := b.Max.X/n
-	dy := b.Max.Y/n
-	for i := 0.0 ; i <= n ; i++ {
+	dx := b.Max.X / n
+	dy := b.Max.Y / n
+	for i := 0.0; i <= n; i++ {
 		xDelta := dx * i
-		yDelta := b.Max.Y - dy * i
+		yDelta := b.Max.Y - dy*i
 		ctx.DrawLine(0, yDelta, xDelta, 0)
 		ctx.DrawLine(xDelta, 0, 0, -yDelta)
 		ctx.DrawLine(0, -yDelta, -xDelta, 0)
@@ -412,8 +411,8 @@ func radialWave(s image.Point, n int) (image.Image, bool) {
 	fn := float64(n)
 	for y := b.Min.Y; y < b.Max.Y; y += 1 {
 		for x := b.Min.X; x < b.Max.X; x += 1 {
-			Θ := math.Atan2(float64(y), float64(x))
-			z := math.Cos(math.Pi + Θ*fn)
+			theta := math.Atan2(float64(y), float64(x))
+			z := math.Cos(math.Pi + theta*fn)
 			pic.Set(x, y, gray(z))
 		}
 	}
@@ -449,9 +448,9 @@ func ringWave(s image.Point, n int) (image.Image, bool) {
 			fx := float64(x)
 			r := math.Sqrt(fx*fx + fy2)
 
-			Θ := math.Atan2(fy, fx)
+			theta := math.Atan2(fy, fx)
 
-			z := math.Cos(math.Pi+Θ*fn) * math.Cos(r*f)
+			z := math.Cos(math.Pi+theta*fn) * math.Cos(r*f)
 			pic.Set(x, y, gray(z))
 		}
 	}
@@ -555,7 +554,7 @@ func oneTask(iFunc imageFunc, imgSize image.Point, numLines int, sizeName string
 		return
 	}
 
-	fileName := makeName(sizeName, funcName, imgSize, numLines)
+	fileName := makeName(sizeName, funcName, numLines)
 
 	srgbImg := srgbConvert(img, sRGBLUT)
 	fmt.Println(fileName)
@@ -569,7 +568,7 @@ func oneTask(iFunc imageFunc, imgSize image.Point, numLines int, sizeName string
 	}
 }
 
-func makeName(sizeName, typeName string, imgSize image.Point, numLines int) string {
+func makeName(sizeName, typeName string, numLines int) string {
 	fileName := fmt.Sprintf("%s_%s_%03d", sizeName, typeName, numLines)
 	return fileName
 }
@@ -584,7 +583,7 @@ func newPallete(s image.Point, background color.Color) (pic *image.RGBA64, b ima
 	}
 
 	if background != nil {
-		draw.Draw(pic, b, &image.Uniform{background}, image.ZP, draw.Src)
+		draw.Draw(pic, b, &image.Uniform{C: background}, image.Point{}, draw.Src)
 	}
 
 	return
@@ -644,7 +643,7 @@ func save(i image.Image, name string) {
 }
 
 func gray(z float64) color.Color {
-	return color.Gray16{uint16((z + 1.0) * 32767.5)}
+	return color.Gray16{Y: uint16((z + 1.0) * 32767.5)}
 }
 
 func clamp(in image.Image) image.Image {
@@ -672,7 +671,7 @@ func srgbConvert(in image.Image, lut []uint16) image.Image {
 	for y := b.Min.Y; y < b.Max.Y; y += 1 {
 		for x := b.Min.X; x < b.Max.X; x += 1 {
 			r, g, b, a := in.At(x, y).RGBA()
-			out.SetRGBA64(x, y, color.RGBA64{lut[r], lut[g], lut[b], uint16(a)})
+			out.SetRGBA64(x, y, color.RGBA64{R: lut[r], G: lut[g], B: lut[b], A: uint16(a)})
 		}
 	}
 
@@ -707,11 +706,11 @@ func initLUTs() {
 		inversesRGBLUT[i] = uint16(cl * 65535.0)
 	}
 
-	𝛾 := 2.2
+	gamma := 2.2
 	gamma22LUT = make([]uint16, 65536)
 	for i := range gamma22LUT {
 		cl = float64(i) / 65535.0
-		gamma22LUT[i] = uint16(math.Pow(cl, 𝛾) * 65535.0)
+		gamma22LUT[i] = uint16(math.Pow(cl, gamma) * 65535.0)
 	}
 
 	linearLUT = make([]uint16, 65536)
