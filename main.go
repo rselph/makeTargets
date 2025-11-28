@@ -51,6 +51,7 @@ var imageFuncs = []imageFunc{
 	stripesdr,
 	polkaDot,
 	polkaDark,
+	polkaBlack,
 	polkaMid,
 	field,
 	radialWedge,
@@ -463,6 +464,10 @@ func polkaDot(s image.Point, n int) (image.Image, bool) {
 
 func polkaDark(s image.Point, n int) (image.Image, bool) {
 	return doDot(s, n, white, darkGray)
+}
+
+func polkaBlack(s image.Point, n int) (image.Image, bool) {
+	return doDot(s, n, white, black)
 }
 
 func polkaMid(s image.Point, n int) (image.Image, bool) {
